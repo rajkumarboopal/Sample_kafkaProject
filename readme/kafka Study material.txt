@@ -1,0 +1,139 @@
+kafaka notes
+
+create Kafka brokers
+-----------------------
+ C:\Users\rboopal\Documents\kafka> .\bin\windows\kafka-storage.bat random-uuid
+OZIoy7-RRjOaif5jwID2bg
+
+C:\Users\rboopal\Documents\kafka\config\kraft\server.properties
+
+C:\Users\rboopal\Documents\kafka> .\bin\windows\kafka-server-start.bat .\config\kraft\server.properties
+----------------------------------------------------------------------------------
+make 3 copy of server properties in  tmp folder inside the kraft
+C:\Users\rboopal\Documents\kafka\config\kraft\tmp
+----------------------------------------------------------------------
+changes in server-1 file
+node.id=1
+controller.quorum.voters=1@localhost:9093,2@localhost:9095,3@localhost:9097
+listeners=PLAINTEXT://:9092,CONTROLLER://:9093
+advertised.listeners=PLAINTEXT://localhost:9092
+log.dirs=/tmp/server-1/kraft-combined-logs
+
+changes in server-2 file
+node.id=2
+controller.quorum.voters=1@localhost:9093,2@localhost:9095,3@localhost:9097
+listeners=PLAINTEXT://:9094,CONTROLLER://:9095
+advertised.listeners=PLAINTEXT://localhost:9094
+log.dirs=/tmp/server-2/kraft-combined-logs
+
+changes in server-3 file
+node.id=3
+controller.quorum.voters=1@localhost:9093,2@localhost:9095,3@localhost:9097
+listeners=PLAINTEXT://:9096,CONTROLLER://:9097
+advertised.listeners=PLAINTEXT://localhost:9094
+log.dirs=/tmp/server-1/kraft-combined-logs
+------------------------------------------------------------------------------
+
+ C:\Users\rboopal\Documents\kafka> .\bin\windows\kafka-storage.bat random-uuid
+OZIoy7-RRjOaif5jwID2bg
+
+.\bin\windows\kafka-storage.bat format -t OZIoy7-RRjOaif5jwID2bg -c .\config\kraft\server.properties
+.\bin\windows\kafka-storage.bat format -t OZIoy7-RRjOaif5jwID2bg -c .\config\kraft\tmp\server-3.properties
+.\bin\windows\kafka-storage.bat format -t OZIoy7-RRjOaif5jwID2bg -c .\config\kraft\tmp\server-2.properties
+.\bin\windows\kafka-storage.bat format -t OZIoy7-RRjOaif5jwID2bg -c .\config\kraft\tmp\server-1.properties
+----------------------------------------------------------------------------------------------------------------
+start kafka brokers
+C:\Users\rboopal\Documents\kafka> .\bin\windows\kafka-server-start.bat .\config\kraft\tmp\server-1.properties
+C:\Users\rboopal\Documents\kafka> .\bin\windows\kafka-server-start.bat .\config\kraft\tmp\server-2.properties
+C:\Users\rboopal\Documents\kafka> .\bin\windows\kafka-server-start.bat .\config\kraft\tmp\server-3.properties
+
+stop kafka brokers
+C:\Users\rboopal\Documents\kafka\bin\windows> .\bin\windows\kafka-server-stop.bat
+--------------------------------------------------------------------------------------------------
+Topic creation
+
+PS C:\Users\rboopal\Documents\kafka\bin\windows> .\kafka-topics.bat --create --topic topic_test_1 
+--partitions 3 --replication-factor 3 --bootstrap-server localhost:9092,localhost:9094
+-------------------------------------------------------------------------------------------------
+ C:\Users\rboopal\Documents\kafka\bin\windows> .\kafka-topics.bat --list --bootstrap-server localhost:9092
+topic_test_1
+topic_test_2
+topic_test_3
+
+C:\Users\rboopal\Documents\kafka\bin\windows> .\kafka-topics.bat --describe --bootstrap-server localhost:9092
+Topic: topic_test_3     TopicId: 9gPvUI4rQcC9d6N8UknjlQ PartitionCount: 3       ReplicationFactor: 3    Configs: segment.bytes=1073741824
+        Topic: topic_test_3     Partition: 0    Leader: 1       Replicas: 1,2,3 Isr: 1,2,3
+        Topic: topic_test_3     Partition: 1    Leader: 2       Replicas: 2,3,1 Isr: 2,3,1
+        Topic: topic_test_3     Partition: 2    Leader: 3       Replicas: 3,1,2 Isr: 3,1,2
+Topic: topic_test_2     TopicId: eONc-3aHQGmmyYUmWW2TXw PartitionCount: 3       ReplicationFactor: 3    Configs: segment.bytes=1073741824
+        Topic: topic_test_2     Partition: 0    Leader: 3       Replicas: 3,1,2 Isr: 3,1,2
+        Topic: topic_test_2     Partition: 1    Leader: 1       Replicas: 1,2,3 Isr: 1,2,3
+        Topic: topic_test_2     Partition: 2    Leader: 2       Replicas: 2,3,1 Isr: 2,3,1
+Topic: topic_test_1     TopicId: sroluIGUQtSpHQJ1SIK_Aw PartitionCount: 3       ReplicationFactor: 3    Configs: segment.bytes=1073741824
+        Topic: topic_test_1     Partition: 0    Leader: 1       Replicas: 1,2,3 Isr: 1,2,3
+        Topic: topic_test_1     Partition: 1    Leader: 2       Replicas: 2,3,1 Isr: 2,3,1
+        Topic: topic_test_1     Partition: 2    Leader: 3       Replicas: 3,1,2 Isr: 3,1,2
+		
+ISR - In-sync replicas
+
+ C:\Users\rboopal\Documents\kafka\bin\windows> .\kafka-topics.bat --delete --topic topic_test_3 --bootstrap-server localhost:9092
+-----------------------------------------------------------------------------------------------
+producer
+
+C:\Users\rboopal\Documents\kafka>.\bin\windows\kafka-console-producer.bat --bootstrap-server localhost:9092,localhost:9093 --topic my-topic
+
+using key 
+
+C:\Users\rboopal\Documents\kafka>.\bin\windows\kafka-console-producer.bat --bootstrap-server localhost:9092,localhost:9093 --topic my-topic --property "parse.key=true" --property "key.separator=:"
+--bootstrap-server localhost:9092
+>firstname:test
+
+-------------------------------------------------------------------------------------------------
+Consumer 
+
+C:\Users\rboopal\Documents\kafka>.\bin\windows\kafka-console-consumer.bat --topic my-topic --from-beginning --bootstrap-server localhost:9092
+null		hello world
+null		hello hai
+firstname	test
+
+C:\Users\rboopal\Documents\kafka>.\bin\windows\kafka-console-producer.bat --bootstrap-server localhost:9092,localhost:9093 --topic my-topic --property "parse.key=true" --property  "print.value=false" --from-begining --bootstrap-server localhost:9092
+null
+null
+firstname
+
+C:\Users\rboopal\Documents\kafka\bin\windows>.\kafka-console-producer.bat --topic message-order --bootstrap-server localhost:9092 --property "parse.key=true" --property "key.separator=:"
+>1:first
+>2:second
+>a:apple
+>b:ball
+>c:cat
+
+C:\Users\rboopal\Documents\kafka\bin\windows>.\kafka-console-consumer.bat --topic message-order --bootstrap-server localhost:9092 --from-beginning --property "print.key=true"
+1       first
+2       second
+a       apple
+b       ball
+-------------------------------------------------------------------------
+Kafka Producer:
+publish/produce message
+serialize to binary format
+specify topic name
+specify topic partion
+
+
+design sama for saudi payments
+payment application
+integrate saudi system
+-to initiate payment system for sada/mada
+https://geidea.net/merchants/en/
+https://moyasar.com/
+0554088833 --> Fahd
+
+
+
+9611796394
+
+
+shaik m
+sandeep villa
+yakub
