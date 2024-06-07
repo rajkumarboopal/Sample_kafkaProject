@@ -6,6 +6,6 @@ import org.springframework.stereotype.Service;
 @Service
 public interface ProductService{
 
-    String createProduct(CreateProductModel createProductModel);
+    String createProduct(CreateProductModel createProductModel) throws Exception;
 
 }
